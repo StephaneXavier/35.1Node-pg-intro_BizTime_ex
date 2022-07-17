@@ -1,8 +1,8 @@
 const express = require('express');
-const { route } = require('../app');
-const router = new express.Router();
+const router = express.Router();
 const db = require('../db');
 const ExpressError = require('../expressError');
+
 
 
 
@@ -48,11 +48,12 @@ router.post('/', async (req, res, next) => {
         if (!comp_code || !amt) {
             throw new ExpressError('Require comp_code and amt to generate new invoice', 400)
         };
+
         const results = await db.query(
             `INSERT INTO invoices (comp_code, amt) VALUES ($1,$2) RETURNING *`, [comp_code, amt]
         );
 
-        res.send({ invoice: results.rows[0] })
+        res.status(201).send({ invoice: results.rows[0] })
     } catch (e) {
         return next(e)
     }
@@ -65,16 +66,40 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { amt } = req.body
-        const result = await db.query(
-            `UPDATE invoices SET amt=$1 WHERE id=$2 RETURNING *`, [amt, id]
-        );
+        const { amt } = req.body;
+        let { paid } = req.body;
 
-        if (result.rows.length === 0) {
-            throw new ExpressError(`Invoice with id of ${id} not found`, 400)
+        if (paid == 'true') {
+            let paid = true;
+            const result = await db.query(
+                `UPDATE invoices SET amt=$1, paid_date=now() WHERE id=$2 RETURNING *`, [amt, id]
+            )
+            if (result.rows.length === 0) {
+                throw new ExpressError(`Invoice with id of ${id} not found`, 400)
+            }
+            return res.send({ invoice: result.rows[0] })
         }
+        if (paid == 'false') {
+            let paid = false;
+            const result = await db.query(
+                `UPDATE invoices SET amt=$1, paid_date=NULL WHERE id=$2 RETURNING *`, [amt, id]
+            )
 
-        res.send({ invoice: result.rows[0] })
+            if (result.rows.length === 0) {
+                throw new ExpressError(`Invoice with id of ${id} not found`, 400)
+            }
+            return res.send({ invoice: result.rows[0] })
+        }
+        else {
+            const result = await db.query(
+                `UPDATE invoices SET amt=$1 WHERE id=$2 RETURNING *`, [amt, id]
+            )
+            if (result.rows.length === 0) {
+                throw new ExpressError(`Invoice with id of ${id} not found`, 400)
+            }
+            return res.send({ invoice: result.rows[0] })
+        };
+
     } catch (e) {
         return next(e)
     }

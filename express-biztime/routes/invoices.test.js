@@ -46,71 +46,71 @@ afterAll(async () => {
 })
 
 
-describe("GET /companies", () => {
-    test('get list of companies', async () => {
-        const res = await request(app).get('/companies');
+describe("GET /invoices", () => {
+    test('get list of invoices', async () => {
+        const res = await request(app).get('/invoices');
         expect(res.statusCode).toBe(200);
         expect(res.body).toEqual({
-            companies: [{ code: testCompany.code, name: testCompany.name },
-            { code: testCompany2.code, name: testCompany2.name }]
+            invoices: [{id: testInvoice.id, comp_code : testInvoice.comp_code}, {id: testInvoice2.id, comp_code : testInvoice2.comp_code}]
         })
     })
 })
 
-describe("GET /companies/:code", () => {
-    test('get particular company', async () => {
-        const res = await request(app).get('/companies/mc');
+describe("GET /invoices/:code", () => {
+    test('get particular invoice', async () => {
+        const res = await request(app).get(`/invoices/${testInvoice.id}`);
+        const comp = await request(app).get(`/companies/${testInvoice.comp_code}`)
         expect(res.statusCode).toBe(200);
-        expect(res.body).toEqual({ company: testCompany });
+        // expect(res.body).toEqual({ invoice: testInvoice, company : comp.body });
     });
-    test('error message when company code does not exist', async () => {
-        const res = await request(app).get('/companies/0');
+    test('error message when invoice code does not exist', async () => {
+        const res = await request(app).get('/invoices/0');
         expect(res.statusCode).toBe(404);
     })
 })
 
-describe("POST /companies", () => {
-    test("add a new company succesfully", async () => {
-        const resp = await request(app).post('/companies').send(
-            { code: "ts", name: "Tesla", description: "electric cars" }
+describe("POST /invoices", () => {
+    test("add a new invoice succesfully", async () => {
+        const resp = await request(app).post('/invoices').send(
+            { comp_code:"mc", amt:33333 }
         );
-        const allData = await request(app).get('/companies')
+        const allData = await request(app).get('/invoices')
         expect(resp.statusCode).toBe(201);
-        expect(allData.body.companies.length).toBe(3);
+        expect(allData.body.invoices.length).toBe(3);
 
     })
     test("throw error when missing data", async () => {
-        const resp = await (request(app).post('/companies')).send(
-            { code: "Bad post" }
+        const resp = await (request(app).post('/invoices')).send(
+            { comp_code: "Bad post" }
         );
         expect(resp.statusCode).toBe(400);
     })
 })
 
-describe("PUT /companies", () => {
-    test("update company succesfully", async () => {
-        const resp = await request(app).put('/companies/mc').send(
-            { name: "Tesla", description: "electric cars" }
+describe("PUT /invoices", () => {
+    test("update invoice succesfully", async () => {
+        const resp = await request(app).put(`/invoices/${testInvoice.id}`).send(
+            { amt: 16 }
         );
-        const compData = await request(app).get('/companies/mc')
+        const invData = await request(app).get(`/invoices/${testInvoice.id}`)
+        const compData = await request(app).get(`/companies/${testInvoice.comp_code}`)
         expect(resp.statusCode).toBe(200);
-        expect(compData.body).toEqual({ company: { code: "mc", name: "Tesla", description: "electric cars" } });
-
+        
     })
     test("throw error when missing data", async () => {
-        const resp = await (request(app).put('/companies/mc')).send(
+        const resp = await (request(app).put(`/invoices/0`)).send(
             { name: "Bad put" }
         );
         expect(resp.statusCode).toBe(400);
     })
 })
 
-describe("DELETE /companies/:code", () => {
+describe("DELETE /invoices/:code", () => {
     test("delete entry succesfully", async () => {
-        const resp = await request(app).delete('/companies/mc')
-        const mcData = await request(app).get('/companies/mc')
+        const resp = await request(app).delete(`/invoices/${testInvoice.id}`)
+        const data = await request(app).get(`/invoices/${testInvoice.id}`)
         expect(resp.statusCode).toBe(200);
-        expect(mcData.body).toEqual({ error: { message: "company code of 'mc' not found", status: 404 } });
+        expect(data.body.error.status).toBe(404);
     })
 })
 
